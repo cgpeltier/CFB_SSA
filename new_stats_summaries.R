@@ -1,4 +1,5 @@
 library(tidyverse)
+library(dplyr)
 
 ## Create new variables
 plays <- plays %>%
@@ -8,13 +9,29 @@ plays <- plays %>%
                               ((yardsgained >= Distance) & Down == 4), 1, 0),
           rz_play = ifelse((yardline <= 20), 1, 0),
           so_play = ifelse((yardline <=40 | touchdown == 1 ), 1, 0),
-          stuffed_run = ifelse((rush == 1 & yardsgained <=0), 1, 0),
+          stuffed_run = ifelse((Sack != 1 & rush == 1 & yardsgained <=0), 1, 0),
           opp_rate_run = ifelse((rush == 1 & yardsgained >= 4), 1, 0),
           exp_play = ifelse((yardsgained >= 13), 1, 0),
           short_rush_attempt = ifelse(Distance <= 2 & rush == 1, 1, 0),
           short_rush_success = ifelse(Distance <= 2 & rush == 1 & yardsgained >= Distance, 1, 0)
     )
 
+## add drive variables
+plays <- plays %>%
+  group_by(offense, defense, Drive.Number) %>%
+  mutate(
+    so_drive = if_else(so_play == 1, 1, 0),
+    td_drive = if_else(touchdown == 1, 1, 0),
+    rz_drive = ifelse(rz_play == 1, 1, 0)
+  )
+
+
+## fix sacks problem
+plays$rush <- ifelse(plays$Sack == 1, 0, plays$rush)
+plays$pass <- ifelse(plays$Sack == 1, 1, plays$pass)
+
+## fix fumble success problem
+plays$success <- ifelse(plays$Fumble.Lost == 1, 0, plays$success)
 
 ## new box score stats
 box.score.stats<- plays %>%
@@ -23,7 +40,7 @@ box.score.stats<- plays %>%
     ypp = mean(yardsgained),
     plays = n(), 
     yards = sum(yardsgained),
-    yardsperplay = mean(yards),
+    yardsperplay = mean(yardsgained),
     drives = n_distinct(Drive.Number),
     overall_sr = mean(success),
     pass.sr = mean(success[pass==1]),
@@ -37,7 +54,11 @@ box.score.stats<- plays %>%
     exp_rate_pass = mean(exp_play[pass == 1]),
     rz_sr = mean(success[rz_play == 1]),
     so_sr = mean(success[so_play == 1]),
-    short_rush_sr = ((sum(short_rush_success)) / (sum(short_rush_attempt)))
+    short_rush_sr = ((sum(short_rush_success)) / (sum(short_rush_attempt))),
+    so_total = n_distinct(Drive.Number[so_drive == 1]),
+    touchdown_total = sum(touchdown),
+    so_rate = so_total / drives, 
+    so_td_rate = touchdown_total / so_total
   )
 
  
@@ -49,7 +70,7 @@ all.stats <- plays %>%
     ypp = mean(yardsgained),
     plays = n(), 
     yards=sum(yardsgained),
-    yardsperplay = mean(yards),
+    yardsperplay = mean(yardsgained),
     drives = n_distinct(Drive.Number),
     overall_sr = mean(success),
     pass.sr = mean(success[pass==1]),
@@ -63,8 +84,15 @@ all.stats <- plays %>%
     exp_rate_pass = mean(exp_play[pass == 1]),
     rz_sr = mean(success[rz_play == 1]),
     so_sr = mean(success[so_play == 1]),
-    short_rush_sr = ((sum(short_rush_success)) / (sum(short_rush_attempt)))
+    short_rush_sr = ((sum(short_rush_success)) / (sum(short_rush_attempt))),
+    so_total = n_distinct(Drive.Number[so_drive == 1]),
+    touchdown_total = sum(touchdown),
+    so_rate = so_total / drives, 
+    so_td_rate = touchdown_total / so_total
   )
 
 
+uga_vandy <- box.score.stats %>%
+    filter(offense == "Georgia" | defense == "Georgia")
 
+write.csv(uga_vandy, file = "uga_vandy_stats.csv")
