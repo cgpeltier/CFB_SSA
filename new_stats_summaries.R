@@ -1,5 +1,8 @@
+## add rank columns
+
 library(tidyverse)
 library(dplyr)
+
 
 ## Create new variables
 plays <- plays %>%
@@ -52,18 +55,26 @@ box.score.stats<- plays %>%
     overall_exp_rate = mean(exp_play),
     exp_rate_rush = mean(exp_play[rush == 1]),
     exp_rate_pass = mean(exp_play[pass == 1]),
+    stuffed_exp_ratio = stuffed_run_rate / exp_rate_rush,
+    short_rush_sr = ((sum(short_rush_success)) / (sum(short_rush_attempt))),
     rz_sr = mean(success[rz_play == 1]),
     so_sr = mean(success[so_play == 1]),
-    short_rush_sr = ((sum(short_rush_success)) / (sum(short_rush_attempt))),
     so_total = n_distinct(Drive.Number[so_drive == 1]),
     touchdown_total = sum(touchdown),
     so_rate = so_total / drives, 
-    so_td_rate = touchdown_total / so_total
-  )
+    so_td_rate = touchdown_total / so_total,
+    so_td_rate2 = (sum(touchdown[so_play==1])/so_total),
+    sr_1d = mean(success[Down == 1]),
+    sr_2d = mean(success[Down == 2]),
+    sr_3d = mean(success[Down == 3]),
+    sr_4d = mean(success[Down == 4])
+      )
 
  
 
 ## new all season stats
+plays<- plays %>% unite(game_drive, Game.Code, Drive.Number, sep = "_", remove = FALSE)
+
 all.stats <- plays %>%
   group_by(offense) %>%
   summarize(
@@ -71,7 +82,7 @@ all.stats <- plays %>%
     plays = n(), 
     yards=sum(yardsgained),
     yardsperplay = mean(yardsgained),
-    drives = n_distinct(Drive.Number),
+    drives = n_distinct(game_drive),
     overall_sr = mean(success),
     pass.sr = mean(success[pass==1]),
     rush.sr = mean(success[rush==1]),
@@ -85,14 +96,17 @@ all.stats <- plays %>%
     rz_sr = mean(success[rz_play == 1]),
     so_sr = mean(success[so_play == 1]),
     short_rush_sr = ((sum(short_rush_success)) / (sum(short_rush_attempt))),
-    so_total = n_distinct(Drive.Number[so_drive == 1]),
+    so_total = n_distinct(game_drive[so_drive == 1]),
     touchdown_total = sum(touchdown),
     so_rate = so_total / drives, 
-    so_td_rate = touchdown_total / so_total
+    so_td_rate = touchdown_total / so_total,
+    so_td_rate2 = sum(touchdown[so_play==1])
   )
 
 
-uga_vandy <- box.score.stats %>%
-    filter(offense == "Georgia" | defense == "Georgia")
+uc_ucla <- box.score.stats %>%
+    filter(offense == "Cincinnati" | defense == "Cincinnati")
 
-write.csv(uga_vandy, file = "uga_vandy_stats.csv")
+
+    
+
