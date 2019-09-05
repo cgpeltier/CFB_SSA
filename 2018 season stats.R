@@ -1,4 +1,4 @@
-## add rank columns
+## To do: add rank columns
 
 
 work_dir <- "C:/Users/eqa47693/Desktop/CFB/ssa_data/ssa_2019/data_2018"
@@ -109,7 +109,13 @@ plays_2018 <- plays_2018 %>%
          opp_rate_run = ifelse((rush == 1 & yardsgained >= 4), 1, 0),
          exp_play = ifelse((yardsgained >= 13), 1, 0),
          short_rush_attempt = ifelse(Distance <= 2 & rush == 1, 1, 0),
-         short_rush_success = ifelse(Distance <= 2 & rush == 1 & yardsgained >= Distance, 1, 0)
+         short_rush_success = ifelse(Distance <= 2 & rush == 1 & yardsgained >= Distance, 1, 0),
+         std.down = ifelse(Down == 2 & Distance < 8, 1, 
+                           ifelse(Down == 3 & Distance < 5, 1,
+                                  ifelse(Down == 4 & Distance < 5, 1, 0))),
+         pass.down = ifelse(Down == 2 & Distance > 8, 1, 
+                            ifelse(Down == 3 & Distance > 5, 1, 
+                                   ifelse(Down == 4 & Distance > 5, 1, 0)))
   )
 
 ## add drive variables
@@ -119,7 +125,7 @@ plays_2018 <- plays_2018 %>%
     so_drive = if_else(so_play == 1, 1, 0),
     td_drive = if_else(touchdown == 1, 1, 0),
     rz_drive = ifelse(rz_play == 1, 1, 0)
-  )
+  ) %>% ungroup()
 
 
 ## fix sacks problem
@@ -129,12 +135,10 @@ plays_2018$pass <- ifelse(plays_2018$Sack == 1, 1, plays_2018$pass)
 ## fix fumble success problem
 plays_2018$success <- ifelse(plays_2018$Fumble.Lost == 1, 0, plays_2018$success)
 
-
-
-## new all season offense stats
+## fix all season game drive problem
 plays_2018 <- plays_2018 %>% unite(game_drive, Game.Code, Drive.Number, sep = "_", remove = FALSE)
 
-
+## new all season offense stats
 all_stats_off_2018 <- plays_2018 %>%
   group_by(offense) %>%
   summarize(
@@ -153,14 +157,19 @@ all_stats_off_2018 <- plays_2018 %>%
     overall_exp_rate = mean(exp_play),
     exp_rate_rush = mean(exp_play[rush == 1]),
     exp_rate_pass = mean(exp_play[pass == 1]),
+    rush.rte = sum(rush)/plays,
+    std.down.rush.rte = sum(rush[std.down==1]) / sum(std.down),
+    pass.down.rush.rte = sum(rush[pass.down==1]) / sum(pass.down),
     rz_sr = mean(success[rz_play == 1]),
     so_sr = mean(success[so_play == 1]),
     short_rush_sr = ((sum(short_rush_success)) / (sum(short_rush_attempt))),
     so_total = n_distinct(game_drive[so_drive == 1]),
     touchdown_total = sum(touchdown),
     so_rate = so_total / drives, 
-    so_td_rate = touchdown_total / so_total
-  )
+    so_td_rate = touchdown_total / so_total,
+    std.down.sr = mean(success[std.down == 1]),
+    pass.down.sr = mean(success[pass.down == 1]),
+  )%>% ungroup()
 
 ## season stats defense
 all_stats_def_2018 <- plays_2018 %>%
@@ -181,6 +190,9 @@ all_stats_def_2018 <- plays_2018 %>%
     overall_exp_rate = mean(exp_play),
     exp_rate_rush = mean(exp_play[rush == 1]),
     exp_rate_pass = mean(exp_play[pass == 1]),
+    rush.rte = sum(rush)/plays,
+    std.down.rush.rte = sum(rush[std.down==1]) / sum(std.down),
+    pass.down.rush.rte = sum(rush[pass.down==1]) / sum(pass.down),
     rz_sr = mean(success[rz_play == 1]),
     so_sr = mean(success[so_play == 1]),
     short_rush_sr = ((sum(short_rush_success)) / (sum(short_rush_attempt))),
@@ -188,19 +200,65 @@ all_stats_def_2018 <- plays_2018 %>%
     touchdown_total = sum(touchdown),
     so_rate = so_total / drives, 
     so_td_rate = touchdown_total / so_total
-  )
+  ) %>% ungroup()
+
+
+## mean ratings for all stats
+avgs_2018 <- plays_2018 %>%
+  summarize(
+    ypp = mean(yardsgained),
+    plays_2018 = n(), 
+    yards=sum(yardsgained),
+    yardsperplay = mean(yardsgained),
+    drives = n_distinct(game_drive),
+    overall_sr = mean(success),
+    pass.sr = mean(success[pass==1]),
+    rush.sr = mean(success[rush==1]),
+    ypp.rush = mean(yardsgained[rush==1]),
+    ypp.pass = mean(yardsgained[pass==1]),
+    stuffed_run_rate = mean(stuffed_run[rush==1]),
+    opp_rate = mean(opp_rate_run[rush==1]),  
+    overall_exp_rate = mean(exp_play),
+    exp_rate_rush = mean(exp_play[rush == 1]),
+    exp_rate_pass = mean(exp_play[pass == 1]),
+    rush.rte = sum(rush)/plays,
+    std.down.rush.rte = sum(rush[std.down==1]) / sum(std.down),
+    pass.down.rush.rte = sum(rush[pass.down==1]) / sum(pass.down),
+    rz_sr = mean(success[rz_play == 1]),
+    so_sr = mean(success[so_play == 1]),
+    short_rush_sr = ((sum(short_rush_success)) / (sum(short_rush_attempt))),
+    so_total = n_distinct(game_drive[so_drive == 1]),
+    touchdown_total = sum(touchdown),
+    so_rate = so_total / drives, 
+    so_td_rate = touchdown_total / so_total
+  ) %>% ungroup()
+
 
 
 ## add rank variables
-off_2018_ranks <- all_stats_off_2018 %>%
-    mutate_all(funs(dense_rank(desc(.))))
+all_stats_off_2018_rk <- all_stats_off_2018 %>%
+    mutate(
+      success.rte = 
+      pass.success.rte = 
+      rush.success.rte = 
+      stuffed.run.rte = 
+      opp_rte =   
+      exp.rte = 
+      exp.rte.rush = 
+      exp.rte.pass = 
+      redz.sr = 
+      scor.opp.sr =
+      short.rush.sr = 
+      scoring.opps = 
+      scor.opp.rte =  
+      so_td_rate = 
+    )  
 
-rank_test <- merge(all_stats_off_2018, off_2018_ranks, by = "offense" )
-  
-select(all_stats_off_2018, - offense) %>%
-    mutate_all(rank = funs(dense_rank(desc(.))))
 
 
+
+##########################################
+## individual team exports
 
 osu_off_2018 <- all_stats_off_2018 %>%
     filter(offense == "Ohio State")

@@ -26,7 +26,8 @@ plays <- plays %>%
     so_drive = if_else(so_play == 1, 1, 0),
     td_drive = if_else(touchdown == 1, 1, 0),
     rz_drive = ifelse(rz_play == 1, 1, 0)
-  )
+  ) %>%
+  ungroup()
 
 
 ## fix sacks problem
@@ -37,7 +38,7 @@ plays$pass <- ifelse(plays$Sack == 1, 1, plays$pass)
 plays$success <- ifelse(plays$Fumble.Lost == 1, 0, plays$success)
 
 ## new box score stats
-box.score.stats<- plays %>%
+box.score.stats <- plays %>%
   group_by(offense, defense) %>%
   summarize(
     ypp = mean(yardsgained),
@@ -68,7 +69,8 @@ box.score.stats<- plays %>%
     sr_2d = mean(success[Down == 2]),
     sr_3d = mean(success[Down == 3]),
     sr_4d = mean(success[Down == 4])
-      )
+      ) %>%
+    ungroup()
 
  
 
@@ -101,7 +103,8 @@ all.stats <- plays %>%
     so_rate = so_total / drives, 
     so_td_rate = touchdown_total / so_total,
     so_td_rate2 = sum(touchdown[so_play==1])
-  )
+  ) %>%
+  ungroup()
 
 
 uc_ucla <- box.score.stats %>%
