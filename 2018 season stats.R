@@ -140,10 +140,11 @@ plays_2018 <- plays_2018 %>% unite(game_drive, Game.Code, Drive.Number, sep = "_
 
 ## new all season offense stats
 all_stats_off_2018 <- plays_2018 %>%
+  filter(rush == 1 | pass == 1) %>%
   group_by(offense) %>%
   summarize(
     ypp = mean(yardsgained),
-    plays_2018 = n(), 
+    plays_2018 = sum(rush + pass), 
     yards=sum(yardsgained),
     yardsperplay = mean(yardsgained),
     drives = n_distinct(game_drive),
@@ -173,10 +174,11 @@ all_stats_off_2018 <- plays_2018 %>%
 
 ## season stats defense
 all_stats_def_2018 <- plays_2018 %>%
+  filter(rush == 1 | pass == 1) %>%
   group_by(defense) %>%
   summarize(
     ypp = mean(yardsgained),
-    plays_2018 = n(), 
+    plays_2018 = sum(rush + pass), 
     yards=sum(yardsgained),
     yardsperplay = mean(yardsgained),
     drives = n_distinct(game_drive),
@@ -205,9 +207,10 @@ all_stats_def_2018 <- plays_2018 %>%
 
 ## mean ratings for all stats
 avgs_2018 <- plays_2018 %>%
+  filter(rush == 1 | pass == 1) %>%
   summarize(
     ypp = mean(yardsgained),
-    plays_2018 = n(), 
+    plays_2018 = sum(rush + pass), 
     yards=sum(yardsgained),
     yardsperplay = mean(yardsgained),
     drives = n_distinct(game_drive),
@@ -221,7 +224,7 @@ avgs_2018 <- plays_2018 %>%
     overall_exp_rate = mean(exp_play),
     exp_rate_rush = mean(exp_play[rush == 1]),
     exp_rate_pass = mean(exp_play[pass == 1]),
-    rush.rte = sum(rush)/plays,
+    rush.rte = sum(rush)/plays_2018,
     std.down.rush.rte = sum(rush[std.down==1]) / sum(std.down),
     pass.down.rush.rte = sum(rush[pass.down==1]) / sum(pass.down),
     rz_sr = mean(success[rz_play == 1]),
@@ -232,6 +235,7 @@ avgs_2018 <- plays_2018 %>%
     so_rate = so_total / drives, 
     so_td_rate = touchdown_total / so_total
   ) %>% ungroup()
+
 
 
 

@@ -66,9 +66,10 @@ advanced.stats2 <- advanced.stats2 %>%
 ## new box score stats
 box.score.stats <- advanced.stats2 %>%
   group_by(offense, defense) %>%
+  filter(rush == 1 | pass == 1) %>%
   summarize(
     ypp = mean(yardsgained),
-    plays = n(), 
+    plays = sum(rush + pass), 
     yards = sum(yardsgained),
     drives = n_distinct(Drive.Number),
     success.rte = mean(success),
@@ -103,9 +104,10 @@ box.score.stats <- advanced.stats2 %>%
 ## new all season stats
 season.stats <- advanced.stats2 %>%
   group_by(offense) %>%
+  filter(rush == 1 | pass == 1) %>%
   summarize(
     ypp = mean(yardsgained),
-    plays = n(), 
+    plays = sum(rush + pass), 
     yards = sum(yardsgained),
     drives = n_distinct(game_drive),
     success.rte = mean(success),
@@ -140,7 +142,7 @@ season.stats <- advanced.stats2 %>%
 
 ## standard down box score stats
 std.down.stats <- advanced.stats2 %>%
-    filter(std.down == 1) %>%
+    filter(std.down == 1 & (rush == 1 | pass == 1)) %>%
     group_by(offense, defense) %>%
     summarize(
         rush.rte = sum(rush)/sum(std.down),
@@ -155,7 +157,7 @@ std.down.stats <- advanced.stats2 %>%
 
 ## passing down box score stats
 pass.down.stats <- advanced.stats2 %>%
-  filter(pass.down == 1) %>%
+  filter(pass.down == 1 & (rush == 1 | pass == 1)) %>%
   group_by(offense, defense) %>%
   summarize(
     rush.rte = sum(rush)/sum(pass.down),
@@ -173,7 +175,7 @@ rb.stats <- advanced.stats2 %>%
   filter(rush == 1) %>%
   group_by(offense, defense, rushfirst, rushlast) %>%
   summarise(
-    plays = n(),
+    plays = sum(rush),
     yards = sum(yardsgained),
     success.rte = mean(success),
     exp.rte = mean(exp_play),
@@ -187,7 +189,7 @@ wr.stats <- advanced.stats2 %>%
   filter(pass == 1) %>%
   group_by(offense, defense, receiverfirst, receiverlast) %>%
   summarise(
-    plays = n(),
+    plays = sum(pass),
     yards = sum(yardsgained),
     success.rte = mean(success),
     exp.rate = mean(exp_play)
@@ -198,7 +200,7 @@ qb.stats <- advanced.stats2 %>%
     filter(pass == 1) %>%
     group_by(offense, defense, passerfirst, passerlast) %>%
     summarise(
-      plays = n(),
+      plays = sum(pass),
       yards = sum(yardsgained),
       success.rte = mean(success),
       exp.rate = mean(exp_play)
@@ -209,7 +211,7 @@ rb.season.stats <- advanced.stats2 %>%
   filter(rush == 1) %>%
   group_by(offense, rushfirst, rushlast) %>%
   summarise(
-    plays = n(),
+    plays = sum(rush),
     yards = sum(yardsgained),
     success.rte = mean(success),
     exp.rte = mean(exp_play),
@@ -223,7 +225,7 @@ wr.season.stats <- advanced.stats2 %>%
   filter(pass == 1) %>%
   group_by(offense, receiverfirst, receiverlast) %>%
   summarise(
-    plays = n(),
+    plays = sum(pass),
     yards = sum(yardsgained),
     success.rte = mean(success),
     exp.rate = mean(exp_play)
@@ -233,7 +235,7 @@ qb.season.stats <- advanced.stats2 %>%
   filter(pass == 1) %>%
   group_by(offense, passerfirst, passerlast) %>%
   summarise(
-    plays = n(),
+    plays = sum(pass),
     yards = sum(yardsgained),
     success.rte = mean(success),
     exp.rate = mean(exp_play)
