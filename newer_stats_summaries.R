@@ -37,7 +37,8 @@ advanced.stats1 <- plays.gs %>%
                              ifelse(Down == 4 & Distance < 5, 1, 0))),
     pass.down = ifelse(Down == 2 & Distance > 8, 1, 
                        ifelse(Down == 3 & Distance > 5, 1, 
-                              ifelse(Down == 4 & Distance > 5, 1, 0)))
+                              ifelse(Down == 4 & Distance > 5, 1, 0))),
+    qb.hurry = ifelse(is.na(hurrier.position), 0, 1)
   )
 
 ## add drive variables
@@ -52,16 +53,34 @@ advanced.stats2 <- advanced.stats1 %>%
 
 
 ## fix sacks problem
+advanced.stats2$rushlast <-as.character(advanced.stats2$rushlast) 
+advanced.stats2$rushfirst <-as.character(advanced.stats2$rushfirst) 
+advanced.stats2$passerlast <-as.character(advanced.stats2$passerlast) 
+advanced.stats2$passerfirst <-as.character(advanced.stats2$passerfirst) 
+advanced.stats2$Play.Type <- as.character(advanced.stats2$Play.Type)
+
 advanced.stats2$rush <- ifelse(advanced.stats2$Sack == 1, 0, advanced.stats2$rush)
 advanced.stats2$pass <- ifelse(advanced.stats2$Sack == 1, 1, advanced.stats2$pass)
 advanced.stats2$Play.Type <- ifelse(advanced.stats2$Sack == 1, "Sack", advanced.stats2$Play.Type)
+advanced.stats2$passerlast <- ifelse(advanced.stats2$Sack == 1, advanced.stats2$rushlast, advanced.stats2$passerlast)
+advanced.stats2$passerfirst <- ifelse(advanced.stats2$Sack == 1, advanced.stats2$rushfirst, advanced.stats2$passerfirst)
+advanced.stats2$rushlast <- ifelse(advanced.stats2$Sack == 1, NA, advanced.stats2$rushlast)
+advanced.stats2$rushfirst <- ifelse(advanced.stats2$Sack == 1, NA, advanced.stats2$rushfirst)
+
 
 ## fix lost fumble problem
 advanced.stats2$success <- ifelse(advanced.stats2$Fumble.Lost == 1, 0, advanced.stats2$success)
 
+
 ## add game_drive variable for season drive stats
 advanced.stats2 <- advanced.stats2 %>% 
     unite(game_drive, Game.Code, Drive.Number, sep = "_", remove = FALSE)
+
+
+## change assisted tfls/sacks to .5 
+advanced.stats2$TFL.Assist <- ifelse(advanced.stats2$TFL.Assist == 1, .5, advanced.stats2$TFL.Assist)
+advanced.stats2$Sack.Assist <- ifelse(advanced.stats2$Sack.Assist == 1, .5, advanced.stats2$Sack.Assist)
+
 
 ## new box score stats
 box.score.stats <- advanced.stats2 %>%
@@ -99,10 +118,12 @@ box.score.stats <- advanced.stats2 %>%
     sr_4d = mean(success[Down == 4]),
     std.down.sr = mean(success[std.down == 1]),
     pass.down.sr = mean(success[pass.down == 1]),
+    havoc.rte = (sum(TFL.Solo + TFL.Assist + Pass.Broken.Up + 
+                       Pass.Intercepted + Fumble + qb.hurry)) / sum(rush + pass)
   ) %>% ungroup()
 
-## new all season stats
-season.stats <- advanced.stats2 %>%
+## new all season stats - offense
+season.stats.off <- advanced.stats2 %>%
   group_by(offense) %>%
   filter(rush == 1 | pass == 1) %>%
   summarize(
@@ -137,8 +158,49 @@ season.stats <- advanced.stats2 %>%
     sr_4d = mean(success[Down == 4]),
     std.down.sr = mean(success[std.down == 1]),
     pass.down.sr = mean(success[pass.down == 1]),
+    havoc.rte.allowed = (sum(TFL.Solo + TFL.Assist + Pass.Broken.Up + 
+                       Pass.Intercepted + Fumble + qb.hurry)) / sum(rush + pass)
   ) %>% ungroup()
 
+## all season stats - defense
+season.stats.def <- advanced.stats2 %>%
+  group_by(defense) %>%
+  filter(rush == 1 | pass == 1) %>%
+  summarize(
+    ypp = mean(yardsgained),
+    plays = sum(rush + pass), 
+    yards = sum(yardsgained),
+    drives = n_distinct(game_drive),
+    success.rte = mean(success),
+    rush.sr = mean(success[rush==1]),
+    pass.sr = mean(success[pass==1]),
+    ypp.rush = mean(yardsgained[rush==1]),
+    ypp.pass = mean(yardsgained[pass==1]),
+    stuff.rte = mean(stuffed_run[rush==1]),
+    opp.rate = mean(opp_rate_run[rush==1]), 
+    exp.rte = mean(exp_play),
+    exp.rte.rush = mean(exp_play[rush == 1]),
+    exp.rte.pass = mean(exp_play[pass == 1]),
+    rush.rte = sum(rush)/plays,
+    yds.to.go.3d = mean(Distance[Down==3]),
+    redz.sr = mean(success[rz_play == 1]),
+    scor.opp.sr = mean(success[so_play == 1]),
+    short.rush.sr = ((sum(short_rush_success)) / (sum(short_rush_attempt))),
+    scoring.opps = n_distinct(game_drive[so_drive == 1]),
+    touchdowns = sum(touchdown),
+    scor.opp.rte = scoring.opps / drives, 
+    scor.opp.tdrte = touchdowns / scoring.opps,
+    redzone.dr = n_distinct(game_drive[rz_drive == 1])/n_distinct(game_drive),
+    redzone.td.rte = sum(touchdown[rz_play==1])/n_distinct(game_drive[rz_play==1]),
+    sr_1d = mean(success[Down == 1]),
+    sr_2d = mean(success[Down == 2]),
+    sr_3d = mean(success[Down == 3]),
+    sr_4d = mean(success[Down == 4]),
+    std.down.sr = mean(success[std.down == 1]),
+    pass.down.sr = mean(success[pass.down == 1]),
+    havoc.rte = (sum(TFL.Solo + TFL.Assist + Pass.Broken.Up + 
+                       Pass.Intercepted + Fumble + qb.hurry)) / sum(rush + pass)
+  ) %>% ungroup()
 
 ## standard down box score stats
 std.down.stats <- advanced.stats2 %>%
@@ -151,7 +213,9 @@ std.down.stats <- advanced.stats2 %>%
         pass.sr = mean(success[pass==1]),
         exp.rte = mean(exp_play),
         exp.rte.rush = mean(exp_play[rush == 1]),
-        exp.rte.pass = mean(exp_play[pass == 1])
+        exp.rte.pass = mean(exp_play[pass == 1]),
+        havoc.rte = (sum(TFL.Solo + TFL.Assist + Pass.Broken.Up + 
+                           Pass.Intercepted + Fumble + qb.hurry)) / sum(rush + pass)
     ) %>% ungroup()
 
 
@@ -166,7 +230,9 @@ pass.down.stats <- advanced.stats2 %>%
     pass.sr = mean(success[pass==1]),
     exp.rte = mean(exp_play),
     exp.rte.rush = mean(exp_play[rush == 1]),
-    exp.rte.pass = mean(exp_play[pass == 1])
+    exp.rte.pass = mean(exp_play[pass == 1]),
+    havoc.rte = (sum(TFL.Solo + TFL.Assist + Pass.Broken.Up + 
+                       Pass.Intercepted + Fumble + qb.hurry)) / sum(rush + pass)
   ) %>% ungroup()
 
 
@@ -175,7 +241,7 @@ rb.stats <- advanced.stats2 %>%
   filter(rush == 1) %>%
   group_by(offense, defense, rushfirst, rushlast) %>%
   summarise(
-    plays = sum(rush),
+    carries = sum(rush),
     yards = sum(yardsgained),
     success.rte = mean(success),
     exp.rte = mean(exp_play),
@@ -184,27 +250,52 @@ rb.stats <- advanced.stats2 %>%
     short.rush.sr = ((sum(short_rush_success)) / (sum(short_rush_attempt)))
   ) %>% ungroup()
 
+
 ## receiver box score stats
 wr.stats <- advanced.stats2 %>%
   filter(pass == 1) %>%
   group_by(offense, defense, receiverfirst, receiverlast) %>%
   summarise(
-    plays = sum(pass),
+    pass.attempts = sum(pass),
+    receptions = sum(Completion),
+    drop.rte = mean(Dropped),
     yards = sum(yardsgained),
     success.rte = mean(success),
     exp.rate = mean(exp_play)
   ) %>% ungroup()
+
 
 ## qb box score stats
 qb.stats <- advanced.stats2 %>%
     filter(pass == 1) %>%
     group_by(offense, defense, passerfirst, passerlast) %>%
     summarise(
-      plays = sum(pass),
+      dropbacks = sum(pass),
+      completions = sum(Completion),
+      incompletions = sum(pass[Sack==0]) - sum(Completion),
+      sacks = sum(Sack),
       yards = sum(yardsgained),
+      completion.rte = mean(Completion[Sack==0]),
       success.rte = mean(success),
       exp.rate = mean(exp_play)
     ) %>% ungroup()
+
+## defensive individual stats
+defensive.stats <- advanced.stats2 %>%
+  filter((rush == 1 | pass == 1) & is.na(tackler.first) == 0) %>%
+  group_by(offense, defense, tackler.first, tackler.last) %>%
+  summarise(
+    total.havoc.plays = sum(TFL.Solo + TFL.Assist + Pass.Broken.Up + Pass.Intercepted +
+                              Fumble + qb.hurry),
+    tackles.solo = sum(Tackle.Solo),
+    tackles.assist = sum(Tackle.Assist), 
+    sack = sum(Sack.Solo + Sack.Assist),
+    tfls = sum(TFL.Solo + TFL.Assist),
+    hurries = sum(qb.hurry),
+    fumbles = sum(Fumble),
+    interceptions = sum(Pass.Intercepted),
+  ) 
+
 
 ## rusher season stats
 rb.season.stats <- advanced.stats2 %>%
@@ -225,19 +316,39 @@ wr.season.stats <- advanced.stats2 %>%
   filter(pass == 1) %>%
   group_by(offense, receiverfirst, receiverlast) %>%
   summarise(
-    plays = sum(pass),
+    pass.attempts = sum(pass),
+    receptions = sum(Completion),
+    drop.rte = mean(Dropped),
     yards = sum(yardsgained),
     success.rte = mean(success),
     exp.rate = mean(exp_play)
   ) %>% ungroup()
 
+## qb season stats
 qb.season.stats <- advanced.stats2 %>%
   filter(pass == 1) %>%
   group_by(offense, passerfirst, passerlast) %>%
   summarise(
-    plays = sum(pass),
+    dropbacks = sum(pass),
+    completions = sum(Completion),
+    incompletions = sum(pass[Sack==0]) - sum(Completion),
     yards = sum(yardsgained),
+    completion.rte = mean(Completion[Sack==0]),
     success.rte = mean(success),
     exp.rate = mean(exp_play)
   ) %>% ungroup()
 
+## defensive season stats 
+defensive.season.stats <- advanced.stats2 %>%
+  filter(rush == 1 | pass == 1) %>%
+  group_by(defense, tackler.first, tackler.last) %>%
+  summarise(
+    total.havoc.plays = sum(TFL.Solo + TFL.Assist + Pass.Broken.Up + 
+                              Pass.Intercepted + Fumble + qb.hurry),
+    tackles.solo = sum(Tackle.Solo),
+    tackles.assist = sum(Tackle.Assist), 
+    sack = sum(Sack.Solo + Sack.Assist),
+    tfls = sum(TFL.Solo + TFL.Assist),
+    fumbles = sum(Fumble),
+    interceptions = sum(Pass.Intercepted),
+  ) 
