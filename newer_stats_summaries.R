@@ -97,11 +97,13 @@ box.score.stats <- advanced.stats2 %>%
     ypp.rush = mean(yardsgained[rush==1]),
     ypp.pass = mean(yardsgained[pass==1]),
     stuff.rte = mean(stuffed_run[rush==1]),
-    opp.rate = mean(opp_rate_run[rush==1]), 
+    opp.rte = mean(opp_rate_run[rush==1]), 
     exp.rte = mean(exp_play),
     exp.rte.rush = mean(exp_play[rush == 1]),
     exp.rte.pass = mean(exp_play[pass == 1]),
     rush.rte = sum(rush)/plays,
+    std.down.rush.rte = sum(rush[std.down==1]) / sum(std.down),
+    pass.down.rush.rte = sum(rush[pass.down==1]) / sum(pass.down),
     yds.to.go.3d = mean(Distance[Down==3]),
     redz.sr = mean(success[rz_play == 1]),
     scor.opp.sr = mean(success[so_play == 1]),
@@ -124,7 +126,7 @@ box.score.stats <- advanced.stats2 %>%
 
 ## new all season stats - offense
 season.stats.off <- advanced.stats2 %>%
-  group_by(offense) %>%
+  group_by(offense, offense.conf) %>%
   filter(rush == 1 | pass == 1) %>%
   summarize(
     ypp = mean(yardsgained),
@@ -137,7 +139,7 @@ season.stats.off <- advanced.stats2 %>%
     ypp.rush = mean(yardsgained[rush==1]),
     ypp.pass = mean(yardsgained[pass==1]),
     stuff.rte = mean(stuffed_run[rush==1]),
-    opp.rate = mean(opp_rate_run[rush==1]), 
+    opp.rte = mean(opp_rate_run[rush==1]), 
     exp.rte = mean(exp_play),
     exp.rte.rush = mean(exp_play[rush == 1]),
     exp.rte.pass = mean(exp_play[pass == 1]),
@@ -152,19 +154,68 @@ season.stats.off <- advanced.stats2 %>%
     scor.opp.tdrte = touchdowns / scoring.opps,
     redzone.dr = n_distinct(game_drive[rz_drive == 1])/n_distinct(game_drive),
     redzone.td.rte = sum(touchdown[rz_play==1])/n_distinct(game_drive[rz_play==1]),
-    sr_1d = mean(success[Down == 1]),
-    sr_2d = mean(success[Down == 2]),
-    sr_3d = mean(success[Down == 3]),
-    sr_4d = mean(success[Down == 4]),
+    sr.1d = mean(success[Down == 1]),
+    sr.2d = mean(success[Down == 2]),
+    sr.3d = mean(success[Down == 3]),
+    sr.4d = mean(success[Down == 4]),
     std.down.sr = mean(success[std.down == 1]),
     pass.down.sr = mean(success[pass.down == 1]),
     havoc.rte.allowed = (sum(TFL.Solo + TFL.Assist + Pass.Broken.Up + 
                        Pass.Intercepted + Fumble + qb.hurry)) / sum(rush + pass)
   ) %>% ungroup()
 
+## add ranks - offense
+season.stats.off <- season.stats.off %>%
+  filter(offense.conf == 823 | offense.conf == 821 | offense.conf == 25354 | offense.conf == 827 |
+           offense.conf == 24312 | offense.conf == 99001 | offense.conf == 875 | offense.conf == 5486 |
+           offense.conf == 905 | offense.conf == 911 | offense.conf == 818) %>%
+  mutate(
+    ypp.rank = dense_rank(desc(ypp)),
+    sr.rank = dense_rank(desc(success.rte)),
+    rush.sr.rank = dense_rank(desc(rush.sr)),
+    pass.sr.rank = dense_rank(desc(pass.sr)),
+    ypp.rush.rank = dense_rank(desc(ypp.rush)),
+    ypp.pass.rank = dense_rank(desc(ypp.pass)),
+    stuff.rte.rank = dense_rank(stuff.rte),
+    opp.rte.rank = dense_rank(desc(opp.rte)),
+    exp.rte.rank = dense_rank(desc(exp.rte)),
+    exp.rte.rush.rank = dense_rank(desc(exp.rte.rush)),
+    exp.rte.pass.rank = dense_rank(desc(exp.rte.pass)),
+    rush.rte.rank = dense_rank(desc(rush.rte)),
+    yds.to.go.3d.rank = dense_rank(yds.to.go.3d),
+    redz.sr.rank = dense_rank(desc(redz.sr)),
+    scor.opp.sr.rank = dense_rank(desc(scor.opp.sr)),
+    short.rush.sr.rank = dense_rank(desc(short.rush.sr)),
+    scor.opp.rte.rank =  dense_rank(desc(scor.opp.rte)),
+    scor.opp.tdrte.rank = dense_rank(desc(scor.opp.tdrte)),
+    redzone.dr.rank = dense_rank(desc(redzone.dr)),
+    redzone.td.rte.rank = dense_rank(desc(redzone.td.rte)),
+    sr.1d.rank = dense_rank(desc(sr.1d)),
+    sr.2d.rank = dense_rank(desc(sr.2d)),
+    sr.3d.rank = dense_rank(desc(sr.3d)),
+    sr.4d.rank = dense_rank(desc(sr.4d)),
+    std.down.sr.rank = dense_rank(desc(std.down.sr)),
+    pass.down.sr.rank = dense_rank(desc(pass.down.sr)),
+    havoc.rte.allowed.rank = dense_rank(havoc.rte.allowed)
+  )
+
+col_order <- c("offense", "ypp", "ypp.rank", "plays", "yards", "drives", "success.rte", "sr.rank", "rush.sr", "rush.sr.rank", "pass.sr", "pass.sr.rank",
+               "ypp.rush", "ypp.rush.rank", "ypp.pass", "ypp.pass.rank", "stuff.rte", "stuff.rte.rank",
+               "opp.rte", "opp.rte.rank", "exp.rte", "exp.rte.rank", "exp.rte.rush", "exp.rte.rush.rank",
+               "exp.rte.pass", "exp.rte.pass.rank", "rush.rte", "rush.rte.rank", "yds.to.go.3d", "yds.to.go.3d.rank",
+               "redz.sr", "redz.sr.rank", "scor.opp.sr", "scor.opp.sr.rank", "short.rush.sr", "short.rush.sr.rank",
+               "touchdowns", "scor.opp.rte", "scor.opp.rte.rank", "scor.opp.tdrte","scor.opp.tdrte.rank", "redzone.dr","redzone.dr.rank", "redzone.td.rte", "redzone.td.rte.rank",
+               "sr.1d", "sr.1d.rank", "sr.2d", "sr.2d.rank", "sr.3d", "sr.3d.rank", "sr.4d","sr.4d.rank", 
+               "std.down.sr", "std.down.sr.rank", "pass.down.sr", "pass.down.sr.rank", "havoc.rte.allowed", "havoc.rte.allowed.rank" )
+
+season.stats.off  <- season.stats.off[, col_order] 
+  
+
+
+
 ## all season stats - defense
 season.stats.def <- advanced.stats2 %>%
-  group_by(defense) %>%
+  group_by(defense, defense.conf) %>%
   filter(rush == 1 | pass == 1) %>%
   summarize(
     ypp = mean(yardsgained),
@@ -177,7 +228,7 @@ season.stats.def <- advanced.stats2 %>%
     ypp.rush = mean(yardsgained[rush==1]),
     ypp.pass = mean(yardsgained[pass==1]),
     stuff.rte = mean(stuffed_run[rush==1]),
-    opp.rate = mean(opp_rate_run[rush==1]), 
+    opp.rte = mean(opp_rate_run[rush==1]), 
     exp.rte = mean(exp_play),
     exp.rte.rush = mean(exp_play[rush == 1]),
     exp.rte.pass = mean(exp_play[pass == 1]),
@@ -192,15 +243,64 @@ season.stats.def <- advanced.stats2 %>%
     scor.opp.tdrte = touchdowns / scoring.opps,
     redzone.dr = n_distinct(game_drive[rz_drive == 1])/n_distinct(game_drive),
     redzone.td.rte = sum(touchdown[rz_play==1])/n_distinct(game_drive[rz_play==1]),
-    sr_1d = mean(success[Down == 1]),
-    sr_2d = mean(success[Down == 2]),
-    sr_3d = mean(success[Down == 3]),
-    sr_4d = mean(success[Down == 4]),
+    sr.1d = mean(success[Down == 1]),
+    sr.2d = mean(success[Down == 2]),
+    sr.3d = mean(success[Down == 3]),
+    sr.4d = mean(success[Down == 4]),
     std.down.sr = mean(success[std.down == 1]),
     pass.down.sr = mean(success[pass.down == 1]),
     havoc.rte = (sum(TFL.Solo + TFL.Assist + Pass.Broken.Up + 
                        Pass.Intercepted + Fumble + qb.hurry)) / sum(rush + pass)
   ) %>% ungroup()
+
+
+## add ranks - defense 
+season.stats.def <- season.stats.def %>%
+  filter(defense.conf == 823 | defense.conf == 821 | defense.conf == 25354 | defense.conf == 827 |
+           defense.conf == 24312 | defense.conf == 99001 | defense.conf == 875 | defense.conf == 5486 |
+           defense.conf == 905 | defense.conf == 911 | defense.conf == 818) %>%
+  mutate(
+    ypp.rank = dense_rank(ypp),
+    sr.rank = dense_rank(success.rte),
+    rush.sr.rank = dense_rank(rush.sr),
+    pass.sr.rank = dense_rank(pass.sr),
+    ypp.rush.rank = dense_rank(ypp.rush),
+    ypp.pass.rank = dense_rank(ypp.pass),
+    stuff.rte.rank = dense_rank(desc(stuff.rte)),
+    opp.rte.rank = dense_rank(opp.rte),
+    exp.rte.rank = dense_rank(exp.rte),
+    exp.rte.rush.rank = dense_rank(exp.rte.rush),
+    exp.rte.pass.rank = dense_rank(exp.rte.pass),
+    rush.rte.rank = dense_rank(rush.rte),
+    yds.to.go.3d.rank = dense_rank(desc(yds.to.go.3d)),
+    redz.sr.rank = dense_rank(redz.sr),
+    scor.opp.sr.rank = dense_rank(scor.opp.sr),
+    short.rush.sr.rank = dense_rank(short.rush.sr),
+    scor.opp.rte.rank =  dense_rank(scor.opp.rte),
+    scor.opp.tdrte.rank = dense_rank(scor.opp.tdrte),
+    redzone.dr.rank = dense_rank(redzone.dr),
+    redzone.td.rte.rank = dense_rank(redzone.td.rte),
+    sr.1d.rank = dense_rank(sr.1d),
+    sr.2d.rank = dense_rank(sr.2d),
+    sr.3d.rank = dense_rank(sr.3d),
+    sr.4d.rank = dense_rank(sr.4d),
+    std.down.sr.rank = dense_rank(std.down.sr),
+    pass.down.sr.rank = dense_rank(pass.down.sr),
+    havoc.rte.rank = dense_rank(desc(havoc.rte))
+  )
+
+col_order <- c("defense", "ypp", "ypp.rank", "plays", "yards", "drives", "success.rte", "sr.rank", "rush.sr", "rush.sr.rank", "pass.sr", "pass.sr.rank",
+               "ypp.rush", "ypp.rush.rank", "ypp.pass", "ypp.pass.rank", "stuff.rte", "stuff.rte.rank",
+               "opp.rte", "opp.rte.rank", "exp.rte", "exp.rte.rank", "exp.rte.rush", "exp.rte.rush.rank",
+               "exp.rte.pass", "exp.rte.pass.rank", "rush.rte", "rush.rte.rank", "yds.to.go.3d", "yds.to.go.3d.rank",
+               "redz.sr", "redz.sr.rank", "scor.opp.sr", "scor.opp.sr.rank", "short.rush.sr", "short.rush.sr.rank",
+               "touchdowns", "scor.opp.rte", "scor.opp.rte.rank", "scor.opp.tdrte","scor.opp.tdrte.rank", "redzone.dr","redzone.dr.rank", "redzone.td.rte", "redzone.td.rte.rank",
+               "sr.1d", "sr.1d.rank", "sr.2d", "sr.2d.rank", "sr.3d", "sr.3d.rank", "sr.4d","sr.4d.rank", 
+               "std.down.sr", "std.down.sr.rank", "pass.down.sr", "pass.down.sr.rank", "havoc.rte", "havoc.rte.rank" )
+
+season.stats.def  <- season.stats.def[, col_order] 
+
+write.csv(season.stats.def, file = "season.stats.def.csv")
 
 ## standard down box score stats
 std.down.stats <- advanced.stats2 %>%
@@ -352,3 +452,4 @@ defensive.season.stats <- advanced.stats2 %>%
     fumbles = sum(Fumble),
     interceptions = sum(Pass.Intercepted),
   ) 
+
