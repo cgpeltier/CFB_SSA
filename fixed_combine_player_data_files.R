@@ -8,7 +8,6 @@ setwd("/Users/parkerf/Downloads/sportsource-data-2019 4")
 library(tidyverse)
 
 
-
 pbp <- read.csv("play.csv")
 drive <- read.csv("drive.csv")
 teams <- read.csv("team.csv")

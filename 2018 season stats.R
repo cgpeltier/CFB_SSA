@@ -141,12 +141,11 @@ plays_2018 <- plays_2018 %>% unite(game_drive, Game.Code, Drive.Number, sep = "_
 ## new all season offense stats
 all_stats_off_2018 <- plays_2018 %>%
   filter(rush == 1 | pass == 1) %>%
-  group_by(offense) %>%
+  group_by(offense, defense) %>%
   summarize(
     ypp = mean(yardsgained),
     plays_2018 = sum(rush + pass), 
     yards=sum(yardsgained),
-    yardsperplay = mean(yardsgained),
     drives = n_distinct(game_drive),
     overall_sr = mean(success),
     pass.sr = mean(success[pass==1]),
@@ -158,7 +157,7 @@ all_stats_off_2018 <- plays_2018 %>%
     overall_exp_rate = mean(exp_play),
     exp_rate_rush = mean(exp_play[rush == 1]),
     exp_rate_pass = mean(exp_play[pass == 1]),
-    rush.rte = sum(rush)/plays,
+    rush.rte = sum(rush)/plays_2018,
     std.down.rush.rte = sum(rush[std.down==1]) / sum(std.down),
     pass.down.rush.rte = sum(rush[pass.down==1]) / sum(pass.down),
     rz_sr = mean(success[rz_play == 1]),
@@ -170,12 +169,25 @@ all_stats_off_2018 <- plays_2018 %>%
     so_td_rate = touchdown_total / so_total,
     std.down.sr = mean(success[std.down == 1]),
     pass.down.sr = mean(success[pass.down == 1]),
+    sr_1d = mean(success[Down == 1]),
+    sr_2d = mean(success[Down == 2]),
+    sr_3d = mean(success[Down == 3]),
+    sr_4d = mean(success[Down == 4]),
   )%>% ungroup()
+
+##rank test code
+all_stats_off_2018 <- all_stats_off_2018 %>%
+    mutate(
+      ypp.rank = dense_rank(desc(ypp)),
+      overall.sr.rank = dense_rank((desc(overall_sr))),
+      
+      
+    )
 
 ## season stats defense
 all_stats_def_2018 <- plays_2018 %>%
   filter(rush == 1 | pass == 1) %>%
-  group_by(defense) %>%
+  group_by(defense, offense) %>%
   summarize(
     ypp = mean(yardsgained),
     plays_2018 = sum(rush + pass), 
@@ -192,7 +204,7 @@ all_stats_def_2018 <- plays_2018 %>%
     overall_exp_rate = mean(exp_play),
     exp_rate_rush = mean(exp_play[rush == 1]),
     exp_rate_pass = mean(exp_play[pass == 1]),
-    rush.rte = sum(rush)/plays,
+    rush.rte = sum(rush)/plays_2018,
     std.down.rush.rte = sum(rush[std.down==1]) / sum(std.down),
     pass.down.rush.rte = sum(rush[pass.down==1]) / sum(pass.down),
     rz_sr = mean(success[rz_play == 1]),
@@ -258,27 +270,57 @@ all_stats_off_2018_rk <- all_stats_off_2018 %>%
       so_td_rate = 
     )  
 
+###################################################
+osu_2018_off <- all_stats_off_2018 %>%
+    filter(offense == "Ohio State") %>%
+    select(opponent = defense, overall_sr)
 
 
+osu_2018_def <- all_stats_def_2018 %>%
+  filter(defense == "Ohio State") %>%
+  select(opponent = offense, overall_sr)
 
-##########################################
-## individual team exports
+osu_2018 <- cbind(osu_2018_off, osu_2018_def) 
 
-osu_off_2018 <- all_stats_off_2018 %>%
-    filter(offense == "Ohio State")
+colnames(osu_2018) <- c("opponent", "offense_sr", "opponent2", "defense_sr")
+osu_2018 <- osu_2018 %>% select(-"opponent2")
 
-osu_def_2018 <- all_stats_def_2018 %>%
-  filter(defense == "Ohio State")
-
-
-write.csv(osu_off_2018, file = "osu_off_2018.csv")
-write.csv(osu_def_2018, file = "osu_def_2018.csv")
+osu_2018$opponent <- factor(osu_2018$opponent, 
+                            levels = c("Oregon State", "Rutgers", "TCU",
+                                      "Tulane", "Penn State", "Indiana", "Minnesota", "Purdue", "Nebraska",
+                                      "Michigan State", "Maryland", "Michigan", "Northwestern", "Washington"))
 
 
+ggplot(data = osu_2018, aes(x = opponent, group = 1)) +
+    geom_line(aes(y = offense_sr, colour = "offense_sr")) +
+    geom_line(aes(y = defense_sr, colour = "defense_sr")) +
+    scale_colour_manual(values=c("black", "red")) + 
+    ylab("success rate") +
+    ylim(.2, .65)
 
-uc_2018_off <- all_stats_off_2018 %>%
-  filter(offense == "Cincinnati")
+########  
+osu_2019_off <- box.score.stats %>%
+    filter(offense == "Ohio State") %>%
+    select(opponent = defense, success.rte)
 
-uc_2018_def <- all_stats_def_2018 %>%
-  filter(defense == "Cincinnati")
+osu_2019_def <- box.score.stats %>%
+  filter(defense == "Ohio State") %>%
+  select(opponent = offense, success.rte)
 
+osu_2019 <- cbind(osu_2019_off, osu_2019_def)
+
+colnames(osu_2019) <- c("opponent", "offense_sr", "opponent2", "defense_sr")
+osu_2019 <- osu_2019 %>% select(-"opponent2")
+
+osu_2019$opponent <- factor(osu_2019$opponent, 
+                            levels = c("Florida Atlantic", "Cincinnati", "Indiana"))
+
+ggplot(data = osu_2019, aes(x = opponent, group = 1)) +
+  geom_line(aes(y = offense_sr, colour = "offense_sr")) +
+  geom_line(aes(y = defense_sr, colour = "defense_sr")) +
+  scale_colour_manual(values=c("black", "red")) + 
+  ylab("success rate") +
+  ylim(.2, .65)
+
+  
+  
