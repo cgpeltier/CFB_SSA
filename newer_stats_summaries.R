@@ -1,9 +1,3 @@
-library(tidyverse) # Data Cleaning, manipulation, summarization, plotting
-library(gt) # beautiful tables
-library(ggthemes) # custom pre-built themes
-library(teamcolors) # NFL team colors and logos
-
-
 ### SUCCESS DEFINITION AND GARBAGE TIME
 plays.gs <- plays %>% mutate(success = ifelse(yardsgained >= .5* Distance & Down == 1, 1, 
                                              ifelse(yardsgained >= .7* Distance & Down == 2, 1,
@@ -26,13 +20,14 @@ advanced.stats1 <- plays.gs %>%
     so_play = ifelse((yardline <=40 & Play.Type != "Kickoff" | touchdown == 1 ), 1, 0),
     stuffed_run = ifelse((rush == 1 & yardsgained <=0), 1, 0),
     opp_rate_run = ifelse((rush == 1 & yardsgained >= 4), 1, 0),
-    exp_play = ifelse(((yardsgained > 10 & rush==1) | (yardsgained > 15 & pass==1) 
+    exp_play = ifelse(((yardsgained > 12 & rush==1) | (yardsgained > 20 & pass==1) 
                       & success==1), 1, 0),
     short_rush_attempt = ifelse(Distance <= 2 & rush == 1, 1, 0),
     short_rush_success = ifelse(Distance <= 2 & rush == 1 & yardsgained >= Distance, 1, 0),
-    std.down = ifelse(Down == 2 & Distance < 8, 1, 
-                      ifelse(Down == 3 & Distance < 5, 1,
-                             ifelse(Down == 4 & Distance < 5, 1, 0))),
+    std.down = ifelse(Down == 1, 1,
+                      ifelse(Down == 2 & Distance < 8, 1, 
+                             ifelse(Down == 3 & Distance < 5, 1,
+                                    ifelse(Down == 4 & Distance < 5, 1, 0)))),
     pass.down = ifelse(Down == 2 & Distance > 8, 1, 
                        ifelse(Down == 3 & Distance > 5, 1, 
                               ifelse(Down == 4 & Distance > 5, 1, 0))),

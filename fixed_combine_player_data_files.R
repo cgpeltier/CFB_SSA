@@ -2,12 +2,6 @@
 library(tidyverse)
 
 
-#1 Load all the data into R Environment
-#copy the directory where you've downloaded the data and paste it between the " " below - this sets your working directory.
-setwd("/Users/parkerf/Downloads/sportsource-data-2019 4")
-library(tidyverse)
-
-
 pbp <- read.csv("play.csv")
 drive <- read.csv("drive.csv")
 teams <- read.csv("team.csv")
